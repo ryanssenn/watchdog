@@ -26,7 +26,7 @@ for scenario in chat code summarize; do
   echo "============================================="
   echo "  Scenario: ${scenario}"
   echo "============================================="
-  guidellm run --config "scenarios/${scenario}.yaml"
+  guidellm benchmark run --config "scenarios/${scenario}.yaml"
 done
 
 echo ""
