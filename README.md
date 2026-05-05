@@ -1,101 +1,54 @@
-# Watchdog
+## vLLM Benchmarking
 
-vLLM Performance Regression Benchmarking Framework
+This project provides a practical benchmarking framework for measuring performance behavior of the vLLM inference engine.
 
-## Motivation
+It is designed for vLLM maintainers who need to compare performance across configurations and, eventually, detect regressions across releases under controlled workloads.
 
-Performance regressions in LLM systems are silent failures.
+The goal is to run controlled workloads, vary one configuration at a time, and measure how latency and throughput change. This makes performance differences observable and comparable across runs.
 
-The system continues to function, but latency increases, throughput drops, and cost rises. These issues are not caught by correctness tests and are easy to miss without structured benchmarking.
+This is not an automated regression detection system. The current focus is benchmarking and configuration comparison. Regression detection is a roadmap item.
 
-The goal is to make performance changes visible and reproducible.
+---
 
-## Approach
+## Benchmark Roadmap (Compounding Optimizations)
 
-GuideLLM is used to generate controlled workloads against a running vLLM server.
+Benchmarks are being structured as a stack of incremental optimizations on the same model, hardware, and workload:
 
-Each run varies:
-- prompt length
-- output length
-- concurrency
+- FP16 baseline  
+- FP8 quantization  
+- FP8 + speculative decoding  
+- TurboQuant  
 
-Benchmarks are executed across scenarios (chat, code, summarize), with results exported as JSON.
+Each step builds on the previous one. The goal is to measure the delta introduced by each optimization, not evaluate configurations in isolation.
 
-Key metrics:
-- Time to First Token (TTFT)
-- Tokens per second (TPS)
-- Requests per second (throughput)
+---
 
-By keeping model, hardware, and workload fixed, differences reflect configuration changes.
+## Metrics
 
-## What is implemented
+Each run captures:
 
-- Automated GuideLLM benchmark runs
-- Scenario-based workloads (chat, code, summarize)
-- Concurrency sweeps
-- JSON result outputs
-- Scripted execution (`run_guidellm_qwen.sh`)
+- Time to First Token (TTFT)  
+- Tokens per second (TPS)  
+- Requests per second  
 
-This provides a consistent baseline for comparing configurations.
+These metrics describe latency, decoding efficiency, and throughput.
 
-## What is demonstrated
+---
 
-Performance regression detection is demonstrated manually by:
+## Roadmap
 
-- running a baseline benchmark
-- modifying a configuration (e.g., batching, quantization)
-- rerunning the same workload
-- comparing TTFT distributions and throughput
+- Commit reproducible benchmark scenarios (YAML + workload definitions)  
+- Document hardware setup used for all runs  
+- Establish FP16 baseline on fixed model and workload  
+- Re-run FP8 under identical conditions  
+- Add side-by-side comparison table (TTFT, TPS, req/s at matched concurrency)  
+- Write short results analysis explaining observed deltas  
 
-This shows how regressions can be identified using the generated data.
+- Add FP8 + speculative decoding
+- Extend comparison to full optimization stack (FP16 → FP8 → FP8 + spec → TurboQuant if available)  
 
-## What is not yet implemented
+- Add automated comparison (compute % deltas between runs)  
+- Define regression thresholds (e.g. TTFT +10%, TPS -5%)  
+- Flag regressions in output  
 
-- Automated regression detection (threshold comparison)
-- Prometheus metrics export
-- CI/CD integration
-- Automated root-cause analysis
-
-## Baseline Performance (Qwen3-8B)
-
-The plots below show baseline performance under a controlled workload  
-(chat, 128 prompt / 128 output tokens, concurrency sweep).
-
-These curves serve as a reference for comparing future runs and identifying regressions.
-
-### TTFT Distribution
-
-![TTFT Percentiles](results/qwen_bench_1_ttft_percentiles.png)
-
-Shows latency distribution across requests. Tail behavior (p95–p99) is key for detecting regressions.
-
-### Throughput Distribution
-
-![Output Tokens/sec Percentiles](results/qwen_bench_1_output_tps_percentiles.png)
-
-Shows decoding throughput under load. Shifts indicate efficiency changes.
-
-## Example Results (Quantized FP8)
-
-Using `RedHatAI/Qwen3-8B-FP8-dynamic`:
-
-Chat (128/128):
-- ~7.5 req/s @ concurrency 32
-- ~974 output tok/s
-- ~850 ms TTFT
-
-Code (512/1024):
-- ~0.3 req/s @ concurrency 8
-- ~254 output tok/s
-- ~781 ms TTFT
-
-Higher concurrency increases throughput while increasing latency.
-
-## How to run
-
-Start a vLLM server, then:
-
-```bash
-export VLLM_BASE_URL="http://localhost:8000"
-export MODEL_NAME="RedHatAI/Qwen3-8B-FP8-dynamic"
-bash ./run_guidellm_qwen.sh
+- Integrate into CI for release benchmarking  
