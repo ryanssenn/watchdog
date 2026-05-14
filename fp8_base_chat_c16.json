@@ -1,0 +1,5 @@
+{
+  "run_name": "fp8_base_chat_concurrency16",
+  "configuration": { "precision": "fp8", "scenario": "base_chat", "concurrency": 16 },
+  "metrics": { "ttft_p99_ms": 190.0, "output_tokens_per_second": 124.0, "requests_per_second": 0.95 }
+}

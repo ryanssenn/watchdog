@@ -1,0 +1,13 @@
+{
+  "summary": {
+    "time_to_first_token": {
+      "p99": 2224.3144512176514
+    },
+    "output_tokens_per_second": {
+      "mean": 794.6639545120913
+    },
+    "requests_per_second": {
+      "mean": 6.3999999999999995
+    }
+  }
+}

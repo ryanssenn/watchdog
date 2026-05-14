@@ -1,0 +1,8 @@
+// Threshold Policy:
+  ttft_p99_ms: 10          # regression if delta is > +10%
+  output_tokens_per_second: -5  # regression if delta is < -5%
+  requests_per_second: -5        # regression if delta is < -5%
+  
+if k == "ttft_p99_ms" and d > 10: 
+  print("TTFT regression detected")
+  

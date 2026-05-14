@@ -1,0 +1,92 @@
+================================================
+FILE: README.md
+================================================
+---
+
+# Watchdog
+
+Write README.md (20–25 min),
+Paste this and adjust numbers:
+vLLM Performance Regression Detection Framework,
+This project demonstrates a reproducible benchmarking and observability pipeline
+that detects latency and throughput regressions in vLLM inference deployments.
+
+Motivation,
+Performance regressions are silent failures in production LLM systems.
+They increase cost, reduce throughput, and degrade user experience without
+triggering functional errors.
+
+Approach,
+Benchmark vLLM using GuideLLM under a controlled workload,
+Export key metrics (TTFT, TPS) via Prometheus,
+Detect regressions using threshold-based comparison,
+Validate remediation through configuration tuning,
+
+Results,
+Introduced a controlled batching regression,
+Detected a 20%+ TTFT degradation,
+Restored baseline performance through tuning,
+
+Future Work,
+CI/CD integration,
+Cross-version vLLM regression testing,
+Automated root-cause analysis,
+Clear > clever
+
+---
+
+
+
+================================================
+FILE: run_guidellm_qwen.sh
+================================================
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Config
+VLLM_BASE_URL="${VLLM_BASE_URL:-http://localhost:8000}"
+VLLM_API_URL="${VLLM_BASE_URL}/v1"
+MODEL_NAME="${MODEL_NAME:-Qwen/Qwen3-8B}"
+BENCH_DIR="${BENCH_DIR:-/home/ubuntu/vLLM-hackathon/projects/track6-perf-lab}"
+
+echo "==> Checking server health at ${VLLM_BASE_URL}/health"
+curl -fsS "${VLLM_BASE_URL}/health" >/dev/null
+echo "Server is healthy."
+
+cd "${BENCH_DIR}"
+mkdir -p results
+
+# Ensure scenario YAMLs target your served model + endpoint
+for f in scenarios/chat.yaml scenarios/code.yaml scenarios/summarize.yaml; do
+  sed -i -E "s|^target:.*|target: ${VLLM_API_URL}|g" "$f"
+  sed -i -E "s|^model:.*|model: ${MODEL_NAME}|g" "$f"
+done
+
+echo "==> Running GuideLLM scenarios"
+for scenario in chat code summarize; do
+  echo ""
+  echo "============================================="
+  echo "  Scenario: ${scenario}"
+  echo "============================================="
+  guidellm benchmark run --config "scenarios/${scenario}.yaml"
+done
+
+echo ""
+echo "==> Done. Result files:"
+ls -lh results/*.json
+
+echo ""
+echo "==> Quick summary"
+python3 - <<'PY'
+import json, glob, os
+for f in sorted(glob.glob("results/*.json")):
+    d = json.load(open(f))
+    s = d.get("summary", d)
+    ttft = s.get("time_to_first_token", {}).get("p99", "n/a")
+    tps  = s.get("output_tokens_per_second", {}).get("mean", "n/a")
+    rps  = s.get("requests_per_second", {}).get("mean", "n/a")
+    print(f"{os.path.basename(f)}")
+    print(f"  TTFT p99: {ttft}")
+    print(f"  Output tok/s mean: {tps}")
+    print(f"  Req/s mean: {rps}")
+PY
