@@ -10,6 +10,50 @@ This is not an automated regression detection system. The current focus is bench
 
 ---
 
+## Quick start (regression pipeline)
+
+Run these commands from the **project root** (the directory that contains `make_two_jsons.py` and the `results/` folder — not inside `results/`).
+
+Requires Python 3 and `results/qwen_bench.json` (GuideLLM benchmark output).
+
+### macOS / Linux
+
+```bash
+cd /path/to/watchdog
+
+python3 ./make_two_jsons.py ./results/qwen_bench.json ./results/fp16/chat.json ./results/fp8/chat.json regress
+python3 ./extract_metrics.py ./results/fp16/chat.json ./results/fp16/chat.metrics.json
+python3 ./extract_metrics.py ./results/fp8/chat.json ./results/fp8/chat.metrics.json
+python3 ./check_regressions.py ./results/fp16/chat.metrics.json ./results/fp8/chat.metrics.json
+```
+
+Use `python` instead of `python3` if that is what your environment provides.
+
+On macOS/Linux, use forward slashes (`./results/...`). Backslashes (`.\results\...`) are Windows-style and will not work correctly in zsh or bash.
+
+### Windows (PowerShell)
+
+```powershell
+cd C:\path\to\watchdog
+
+python .\make_two_jsons.py .\results\qwen_bench.json .\results\fp16\chat.json .\results\fp8\chat.json regress
+python .\extract_metrics.py .\results\fp16\chat.json .\results\fp16\chat.metrics.json
+python .\extract_metrics.py .\results\fp8\chat.json .\results\fp8\chat.metrics.json
+python .\check_regressions.py .\results\fp16\chat.metrics.json .\results\fp8\chat.metrics.json
+```
+
+Use your Python install (for example `py -3` or a full path to `python.exe`) if `python` is not on your PATH.
+
+### What the steps do
+
+1. **`make_two_jsons.py`** — Builds `fp16/chat.json` (baseline) and `fp8/chat.json` from `qwen_bench.json`. With `regress`, the FP8 file is intentionally 10% worse for demo/testing.
+2. **`extract_metrics.py`** — Extracts TTFT p99, output tokens/sec, and requests/sec into `.metrics.json` files.
+3. **`check_regressions.py`** — Compares base vs test metrics; prints `REGRESSION` or `OK` and exits with code 1 if any metric regressed.
+
+Expected output with `regress` mode: +10% TTFT, −10% throughput on all three metrics.
+
+---
+
 ## Benchmark Roadmap (Compounding Optimizations)
 
 Benchmarks are being structured as a stack of incremental optimizations on the same model, hardware, and workload:
